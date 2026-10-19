@@ -1,0 +1,63 @@
+package com.example.KafkaDemo.KafkaBasics;
+
+import com.example.KafkaDemo.KafkaDemoApplication;
+import org.apache.kafka.clients.producer.*;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Properties;
+
+public class ProducerDemoWithCallback {
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaDemoApplication.class.getSimpleName());
+
+    public static void main(String[] args) {
+        Properties properties = new Properties();
+
+//        Connect to localhost
+        properties.setProperty("bootstrap.servers", "localhost:9092");
+
+//        Set Producer Properties
+//        Used to selerize the key and value of the message
+        properties.setProperty("key.serializer", StringSerializer.class.getName());
+        properties.setProperty("value.serializer", StringSerializer.class.getName());
+
+//        NOT RECOMMENDED IN PRODUCTION !!!
+//        properties.setProperty("batch.size", "400");
+//        properties.setProperty("partitioner.class", RoundRobinPartitioner.class.getName());
+
+//        Create a Kafka Producer
+
+        KafkaProducer<String, String> producer = new KafkaProducer<>(properties);
+
+//        Create a producer record / message that is sent to Kafka
+
+//        Before sending data to a topic , we first need to create a topic in Kafka using CLI
+        ProducerRecord<String, String> record = new ProducerRecord<>("topic", "hello world");
+
+//        Send data - asynchronus process
+
+        producer.send(record, new Callback() {
+            @Override
+            public void onCompletion(RecordMetadata recordMetadata, Exception e) {
+//                This call is executed every time a record successfully send or an exception is thrown
+
+                if (e == null) {
+//                  If no exception then that means that record was successfully send
+                    log.info("Recieved Metadata \n" + "Topic: " + recordMetadata.topic() + "\n" + "Partition: " + recordMetadata.partition() + "\n" + "Offset: " + recordMetadata.offset() + "\n" + "Timestamp: " + recordMetadata.timestamp());
+                } else if (e != null) {
+                    log.error(e.getMessage());
+                }
+            }
+        });
+
+//        tell the producer to send all data and block until done - Synchronus process
+        producer.flush();
+//        Flush and close the producer
+        producer.close();
+
+        log.info("I am a Kafka Producer with callback");
+    }
+
+}
